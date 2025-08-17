@@ -3,8 +3,9 @@ import { X, Play, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Badge } from './ui/badge';
+import LoadingSpinner from './LoadingSpinner';
 
-const MyListModal = ({ isOpen, onClose, myList, onPlay, onRemove }) => {
+const MyListModal = ({ isOpen, onClose, myList, loading, onPlay, onRemove }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-4xl max-h-[80vh] overflow-hidden">
@@ -13,7 +14,15 @@ const MyListModal = ({ isOpen, onClose, myList, onPlay, onRemove }) => {
         </DialogHeader>
 
         <div className="overflow-y-auto max-h-[calc(80vh-120px)]">
-          {myList && myList.length > 0 ? (
+          {/* Loading State */}
+          {loading && (
+            <div className="py-12">
+              <LoadingSpinner size="lg" text="Loading your list..." />
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && myList && myList.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myList.map((item) => (
                 <div key={item.id} className="group relative">
@@ -68,7 +77,7 @@ const MyListModal = ({ isOpen, onClose, myList, onPlay, onRemove }) => {
                     </div>
 
                     <div className="flex items-center space-x-1 text-sm text-gray-400">
-                      {item.genre.map((genre, index) => (
+                      {item.genre && item.genre.map((genre, index) => (
                         <React.Fragment key={genre}>
                           <span>{genre}</span>
                           {index < item.genre.length - 1 && <span>•</span>}
@@ -86,14 +95,14 @@ const MyListModal = ({ isOpen, onClose, myList, onPlay, onRemove }) => {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : !loading ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-lg mb-4">Your list is empty</div>
               <p className="text-gray-500">
                 Add movies and shows to your list to watch them later
               </p>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Close Button */}
