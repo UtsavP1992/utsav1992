@@ -123,51 +123,53 @@ const Header = ({ onSearch, onGenreSelect, currentProfile, onProfileChange, onSh
           </Button>
 
           {/* Profile Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-gray-800 flex items-center space-x-2"
-              >
-                <img
-                  src={currentProfile.avatar}
-                  alt={currentProfile.name}
-                  className="w-8 h-8 rounded"
-                />
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-black/90 border-gray-700 text-white min-w-[200px]">
-              {userProfiles.map((profile) => (
-                <DropdownMenuItem
-                  key={profile.id}
-                  onClick={() => onProfileChange(profile)}
-                  className="flex items-center space-x-3 hover:bg-gray-800 cursor-pointer"
+          {currentProfile && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-gray-800 flex items-center space-x-2"
                 >
                   <img
-                    src={profile.avatar}
-                    alt={profile.name}
-                    className="w-6 h-6 rounded"
+                    src={currentProfile.avatar}
+                    alt={currentProfile.name}
+                    className="w-8 h-8 rounded"
                   />
-                  <span>{profile.name}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-black/90 border-gray-700 text-white min-w-[200px]">
+                {userProfiles.map((profile) => (
+                  <DropdownMenuItem
+                    key={profile.id}
+                    onClick={() => onProfileChange(profile)}
+                    className="flex items-center space-x-3 hover:bg-gray-800 cursor-pointer"
+                  >
+                    <img
+                      src={profile.avatar}
+                      alt={profile.name}
+                      className="w-6 h-6 rounded"
+                    />
+                    <span>{profile.name}</span>
+                  </DropdownMenuItem>
+                ))}
+                <hr className="border-gray-700 my-2" />
+                <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
+                  Manage Profiles
                 </DropdownMenuItem>
-              ))}
-              <hr className="border-gray-700 my-2" />
-              <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
-                Manage Profiles
-              </DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
-                Help Center
-              </DropdownMenuItem>
-              <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
-                Sign out of Netflix
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
+                  Account
+                </DropdownMenuItem>
+                <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
+                  Help Center
+                </DropdownMenuItem>
+                <DropdownMenuItem className="hover:bg-gray-800 cursor-pointer">
+                  Sign out of Netflix
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
