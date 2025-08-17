@@ -2,8 +2,9 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { Button } from './ui/button';
 import MovieCard from './MovieCard';
+import LoadingSpinner from './LoadingSpinner';
 
-const SearchResults = ({ query, results, isVisible, onClose, onPlay, onAddToList, onMoreInfo }) => {
+const SearchResults = ({ query, results, loading, isVisible, onClose, onPlay, onAddToList, onMoreInfo }) => {
   if (!isVisible || !query) return null;
 
   return (
@@ -15,9 +16,11 @@ const SearchResults = ({ query, results, isVisible, onClose, onPlay, onAddToList
             <h1 className="text-white text-2xl md:text-3xl font-bold">
               Search Results for "{query}"
             </h1>
-            <p className="text-gray-400 mt-1">
-              {results.length} {results.length === 1 ? 'result' : 'results'} found
-            </p>
+            {!loading && (
+              <p className="text-gray-400 mt-1">
+                {results.length} {results.length === 1 ? 'result' : 'results'} found
+              </p>
+            )}
           </div>
           <Button
             variant="ghost"
@@ -33,7 +36,15 @@ const SearchResults = ({ query, results, isVisible, onClose, onPlay, onAddToList
       {/* Results */}
       <div className="p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
-          {results.length > 0 ? (
+          {/* Loading State */}
+          {loading && (
+            <div className="flex justify-center py-20">
+              <LoadingSpinner size="lg" text={`Searching for "${query}"...`} />
+            </div>
+          )}
+
+          {/* Results Grid */}
+          {!loading && results.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {results.map((movie) => (
                 <MovieCard
@@ -45,7 +56,10 @@ const SearchResults = ({ query, results, isVisible, onClose, onPlay, onAddToList
                 />
               ))}
             </div>
-          ) : (
+          )}
+
+          {/* No Results */}
+          {!loading && results.length === 0 && (
             <div className="text-center py-20">
               <div className="text-gray-400 text-xl mb-4">
                 No results found for "{query}"
