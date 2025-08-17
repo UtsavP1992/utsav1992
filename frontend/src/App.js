@@ -8,80 +8,114 @@ import VideoPlayer from './components/VideoPlayer';
 import MyListModal from './components/MyListModal';
 import SearchResults from './components/SearchResults';
 import Footer from './components/Footer';
+import LoadingSpinner from './components/LoadingSpinner';
+import ErrorMessage from './components/ErrorMessage';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 
-// Import mock data
+// Import API hooks
 import {
-  featuredContent,
-  movieCategories,
-  myList as initialMyList,
-  continueWatching,
-  userProfiles
-} from './data/mockData';
+  useFeaturedContent,
+  useTrendingContent,
+  usePopularContent,
+  useContentByGenre,
+  useSearch,
+  useUserProfiles,
+  useMyList,
+  useContinueWatching,
+  useMyListManager,
+  useViewingProgress
+} from './hooks/useApi';
 
 const Home = () => {
-  const [currentProfile, setCurrentProfile] = useState(userProfiles[0]);
-  const [myList, setMyList] = useState(initialMyList);
+  // State management
+  const [currentProfile, setCurrentProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [showMyListModal, setShowMyListModal] = useState(false);
   const [currentTrailerUrl, setCurrentTrailerUrl] = useState('');
 
+  // API hooks
+  const { data: featuredContent, loading: featuredLoading, error: featuredError, refetch: refetchFeatured } = useFeaturedContent();
+  const { data: trendingContent, loading: trendingLoading, error: trendingError } = useTrendingContent();
+  const { data: popularContent, loading: popularLoading, error: popularError } = usePopularContent();
+  const { data: actionContent, loading: actionLoading } = useContentByGenre('action');
+  const { data: horrorContent, loading: horrorLoading } = useContentByGenre('horror');
+  const { data: userProfiles, loading: profilesLoading, error: profilesError } = useUserProfiles();
+  
+  // Dynamic hooks based on current profile
+  const { data: myList, loading: myListLoading, refetch: refetchMyList } = useMyList(currentProfile?.id);
+  const { data: continueWatching, loading: continueWatchingLoading } = useContinueWatching(currentProfile?.id);
+  
+  // Search and actions
+  const { searchResults, loading: searchLoading, search } = useSearch();
+  const { addToMyList, removeFromMyList, loading: myListActionLoading } = useMyListManager();
+  const { createProgress, updateProgress } = useViewingProgress();
+
+  // Set default profile when profiles load
+  useEffect(() => {
+    if (userProfiles && userProfiles.length > 0 && !currentProfile) {
+      setCurrentProfile(userProfiles[0]);
+    }
+  }, [userProfiles, currentProfile]);
+
   // Handle search functionality
-  const handleSearch = (query) => {
+  const handleSearch = async (query) => {
     if (!query.trim()) {
       setShowSearchResults(false);
       return;
     }
 
     setSearchQuery(query);
-    
-    // Search through all movies in categories
-    const allMovies = movieCategories.flatMap(category => category.movies);
-    const results = allMovies.filter(movie =>
-      movie.title.toLowerCase().includes(query.toLowerCase()) ||
-      movie.genre.some(genre => genre.toLowerCase().includes(query.toLowerCase()))
-    );
-    
-    setSearchResults(results);
+    await search(query);
     setShowSearchResults(true);
   };
 
   // Handle play trailer
-  const handlePlayTrailer = (trailerUrl, movie = null) => {
+  const handlePlayTrailer = async (trailerUrl, movie = null) => {
     setCurrentTrailerUrl(trailerUrl);
     setSelectedMovie(movie);
     setShowVideoPlayer(true);
     toast.success(`Playing ${movie?.title || 'content'}`);
+
+    // Create viewing progress if movie is provided
+    if (movie && currentProfile) {
+      await createProgress(currentProfile.id, movie, 5); // 5% progress for starting
+    }
   };
 
   // Handle add to list
-  const handleAddToList = (movie) => {
-    const isAlreadyInList = myList.some(item => item.id === movie.id);
-    
-    if (isAlreadyInList) {
-      toast.info(`${movie.title} is already in your list`);
+  const handleAddToList = async (movie) => {
+    if (!currentProfile) {
+      toast.error('Please select a profile first');
       return;
     }
 
-    const movieWithProgress = {
-      ...movie,
-      progress: 0
-    };
-    
-    setMyList(prev => [...prev, movieWithProgress]);
-    toast.success(`${movie.title} added to your list`);
+    const success = await addToMyList(currentProfile.id, movie);
+    if (success) {
+      toast.success(`${movie.title} added to your list`);
+      refetchMyList(); // Refresh my list
+    } else {
+      toast.error(`Failed to add ${movie.title} to your list`);
+    }
   };
 
   // Handle remove from list
-  const handleRemoveFromList = (movieId) => {
-    const movie = myList.find(item => item.id === movieId);
-    setMyList(prev => prev.filter(item => item.id !== movieId));
-    toast.success(`${movie?.title} removed from your list`);
+  const handleRemoveFromList = async (movieId) => {
+    if (!currentProfile) {
+      toast.error('Please select a profile first');
+      return;
+    }
+
+    const success = await removeFromMyList(currentProfile.id, movieId);
+    if (success) {
+      toast.success('Removed from your list');
+      refetchMyList(); // Refresh my list
+    } else {
+      toast.error('Failed to remove from your list');
+    }
   };
 
   // Handle more info (placeholder)
@@ -99,7 +133,6 @@ const Home = () => {
   const closeSearchResults = () => {
     setShowSearchResults(false);
     setSearchQuery('');
-    setSearchResults([]);
   };
 
   // Close video player
@@ -108,6 +141,28 @@ const Home = () => {
     setSelectedMovie(null);
     setCurrentTrailerUrl('');
   };
+
+  // Show loading if profiles are still loading
+  if (profilesLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <LoadingSpinner size="xl" text="Loading Netflix Clone..." />
+      </div>
+    );
+  }
+
+  // Show error if profiles failed to load
+  if (profilesError) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <ErrorMessage
+          title="Failed to Load Profiles"
+          message="Unable to load user profiles. Please check your connection and try again."
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -120,33 +175,51 @@ const Home = () => {
       />
 
       {/* Search Results */}
-      <SearchResults
-        query={searchQuery}
-        results={searchResults}
-        isVisible={showSearchResults}
-        onClose={closeSearchResults}
-        onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
-        onAddToList={handleAddToList}
-        onMoreInfo={handleMoreInfo}
-      />
+      {showSearchResults && (
+        <SearchResults
+          query={searchQuery}
+          results={searchResults}
+          loading={searchLoading}
+          isVisible={showSearchResults}
+          onClose={closeSearchResults}
+          onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
+          onAddToList={handleAddToList}
+          onMoreInfo={handleMoreInfo}
+        />
+      )}
 
       {/* Main Content */}
       {!showSearchResults && (
         <>
           {/* Hero Section */}
-          <HeroSection
-            content={featuredContent}
-            onPlayTrailer={(url) => handlePlayTrailer(url, featuredContent)}
-            onAddToList={handleAddToList}
-          />
+          {featuredLoading ? (
+            <div className="h-screen bg-black flex items-center justify-center">
+              <LoadingSpinner size="lg" text="Loading featured content..." />
+            </div>
+          ) : featuredError ? (
+            <div className="h-screen bg-black flex items-center justify-center">
+              <ErrorMessage
+                title="Failed to Load Featured Content"
+                message="Unable to load the featured content for the hero section."
+                onRetry={refetchFeatured}
+              />
+            </div>
+          ) : featuredContent ? (
+            <HeroSection
+              content={featuredContent}
+              onPlayTrailer={(url) => handlePlayTrailer(url, featuredContent)}
+              onAddToList={handleAddToList}
+            />
+          ) : null}
 
           {/* Content Rows */}
           <div className="relative -mt-32 z-10">
             {/* Continue Watching */}
-            {continueWatching.length > 0 && (
+            {continueWatching && continueWatching.length > 0 && (
               <ContentRow
-                title="Continue Watching for John"
+                title={`Continue Watching for ${currentProfile?.name || 'User'}`}
                 movies={continueWatching}
+                loading={continueWatchingLoading}
                 onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
                 onAddToList={handleAddToList}
                 onMoreInfo={handleMoreInfo}
@@ -154,17 +227,47 @@ const Home = () => {
               />
             )}
 
-            {/* Movie Categories */}
-            {movieCategories.map((category) => (
-              <ContentRow
-                key={category.id}
-                title={category.title}
-                movies={category.movies}
-                onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
-                onAddToList={handleAddToList}
-                onMoreInfo={handleMoreInfo}
-              />
-            ))}
+            {/* Trending Now */}
+            <ContentRow
+              title="Trending Now"
+              movies={trendingContent || []}
+              loading={trendingLoading}
+              error={trendingError}
+              onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
+              onAddToList={handleAddToList}
+              onMoreInfo={handleMoreInfo}
+            />
+
+            {/* Popular on Netflix */}
+            <ContentRow
+              title="Popular on Netflix"
+              movies={popularContent || []}
+              loading={popularLoading}
+              error={popularError}
+              onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
+              onAddToList={handleAddToList}
+              onMoreInfo={handleMoreInfo}
+            />
+
+            {/* Action & Adventure */}
+            <ContentRow
+              title="Action & Adventure"
+              movies={actionContent || []}
+              loading={actionLoading}
+              onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
+              onAddToList={handleAddToList}
+              onMoreInfo={handleMoreInfo}
+            />
+
+            {/* Horror & Thriller */}
+            <ContentRow
+              title="Horror & Thriller"
+              movies={horrorContent || []}
+              loading={horrorLoading}
+              onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
+              onAddToList={handleAddToList}
+              onMoreInfo={handleMoreInfo}
+            />
           </div>
 
           {/* Footer */}
@@ -184,7 +287,8 @@ const Home = () => {
       <MyListModal
         isOpen={showMyListModal}
         onClose={() => setShowMyListModal(false)}
-        myList={myList}
+        myList={myList || []}
+        loading={myListLoading}
         onPlay={(movie) => handlePlayTrailer(movie.trailerUrl, movie)}
         onRemove={handleRemoveFromList}
       />
