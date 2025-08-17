@@ -10,7 +10,7 @@ import {
 } from './ui/dropdown-menu';
 import { userProfiles } from '../data/mockData';
 
-const Header = ({ onSearch, onGenreSelect, currentProfile, onProfileChange, onShowMyList }) => {
+const Header = ({ onSearch, onGenreSelect, currentProfile, onProfileChange, onShowMyList, userProfiles = [] }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
