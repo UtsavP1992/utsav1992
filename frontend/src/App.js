@@ -172,6 +172,7 @@ const Home = () => {
         currentProfile={currentProfile}
         onProfileChange={handleProfileChange}
         onShowMyList={() => setShowMyListModal(true)}
+        userProfiles={userProfiles || []}
       />
 
       {/* Search Results */}
