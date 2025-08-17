@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional
+from typing import List, Optional, Dict
 from services.content_service import ContentService
 from services.tmdb_service import tmdb_service
 from models.content import ContentResponse
